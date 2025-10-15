@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { Company, ContentSection, Job } from "@/lib/supabase/client";
+import {
+  createClient,
+  Company,
+  ContentSection,
+  Job,
+} from "@/lib/supabase/client";
+
 import {
   LogOut,
   Eye,
