@@ -92,71 +92,71 @@ We welcome applications from qualified candidates who are passionate about makin
     };
   };
 
-  const sleep = (ms: number) =>
-    new Promise((resolve) => setTimeout(resolve, ms));
+  // const sleep = (ms: number) =>
+  //   new Promise((resolve) => setTimeout(resolve, ms));
 
-  const validateCSVData = (csvData: CSVData[]) => {
-    if (csvData.length === 0) {
-      throw new Error("No data found in CSV file");
-    }
+  // const validateCSVData = (csvData: CSVData[]) => {
+  //   if (csvData.length === 0) {
+  //     throw new Error("No data found in CSV file");
+  //   }
 
-    const requiredFields = ["title", "location", "employment_type"];
-    const firstRow = csvData[0];
-    const missingFields = requiredFields.filter(
-      (field) => !firstRow[field as keyof CSVData]
-    );
+  //   const requiredFields = ["title", "location", "employment_type"];
+  //   const firstRow = csvData[0];
+  //   const missingFields = requiredFields.filter(
+  //     (field) => !firstRow[field as keyof CSVData]
+  //   );
 
-    if (missingFields.length > 0) {
-      throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
-    }
-  };
+  //   if (missingFields.length > 0) {
+  //     throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
+  //   }
+  // };
 
-  const processCSVResults = async (results: Papa.ParseResult<CSVData>) => {
-    try {
-      setProcessingProgress(50);
+  // const processCSVResults = async (results: Papa.ParseResult<CSVData>) => {
+  //   try {
+  //     setProcessingProgress(50);
 
-      if (results.errors.length > 0) {
-        throw new Error(
-          `CSV parsing errors: ${results.errors
-            .map((e) => e.message)
-            .join(", ")}`
-        );
-      }
+  //     if (results.errors.length > 0) {
+  //       throw new Error(
+  //         `CSV parsing errors: ${results.errors
+  //           .map((e) => e.message)
+  //           .join(", ")}`
+  //       );
+  //     }
 
-      const csvData = results.data as CSVData[];
+  //     const csvData = results.data as CSVData[];
 
-      // Stage 3: Validating
-      setProcessingStage("validating");
-      setProcessingProgress(70);
-      await sleep(800);
+  //     // Stage 3: Validating
+  //     setProcessingStage("validating");
+  //     setProcessingProgress(70);
+  //     await sleep(800);
 
-      validateCSVData(csvData);
+  //     validateCSVData(csvData);
 
-      // Stage 4: Processing data
-      setProcessingProgress(90);
-      await sleep(500);
+  //     // Stage 4: Processing data
+  //     setProcessingProgress(90);
+  //     await sleep(500);
 
-      // Convert CSV data to Job format
-      const jobs = csvData.map(mapCSVToJob);
+  //     // Convert CSV data to Job format
+  //     const jobs = csvData.map(mapCSVToJob);
 
-      setProcessingProgress(100);
-      setProcessingStage("complete");
-      await sleep(300);
+  //     setProcessingProgress(100);
+  //     setProcessingStage("complete");
+  //     await sleep(300);
 
-      setPreviewData(jobs);
-      setShowPreview(true);
-      setShowProcessingAnimation(false);
-      setUploadStatus("success");
-    } catch (error) {
-      setShowProcessingAnimation(false);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unknown error occurred"
-      );
-      setUploadStatus("error");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  //     setPreviewData(jobs);
+  //     setShowPreview(true);
+  //     setShowProcessingAnimation(false);
+  //     setUploadStatus("success");
+  //   } catch (error) {
+  //     setShowProcessingAnimation(false);
+  //     setErrorMessage(
+  //       error instanceof Error ? error.message : "Unknown error occurred"
+  //     );
+  //     setUploadStatus("error");
+  //   } finally {
+  //     setIsProcessing(false);
+  //   }
+  // };
 
   const processCSVFile = async (file: File) => {
     setIsProcessing(true);
