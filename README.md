@@ -64,5 +64,3 @@ Required fields: `title`, `location`, `employment_type`.
 
 `nextjs`, `react`, `tailwindcss`, `supabase`, `framer-motion`, `csv`, `import`, `careers`, `ats`, `hrtech`
 
-
-If you want, I can also add contributing guidelines, tests, or GitHub Actions for lint/build checks. Let me know which you'd like next.
