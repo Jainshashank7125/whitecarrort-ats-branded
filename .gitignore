@@ -24,7 +24,3 @@ dist-ssr
 
 # Next.js build output
 .next/
-.next/cache/
-.next/static/
-.next/server/
-.next/server/app-paths-manifest.json
