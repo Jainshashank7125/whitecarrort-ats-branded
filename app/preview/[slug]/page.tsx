@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+import CareersPageClient from "@/app/[slug]/careers/CareersPageClient";
 import { notFound } from "next/navigation";
-import CareersPageClient from "./CareersPageClient";
 import type { Metadata } from "next";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams: { token?: string };
 }
 
 export async function generateMetadata({
@@ -17,33 +18,52 @@ export async function generateMetadata({
     .from("companies")
     .select("name, tagline")
     .eq("slug", slug)
-    .eq("is_published", true)
     .maybeSingle();
 
   if (!company) {
-    return {
-      title: "Careers Page Not Found",
-    };
+    return { title: "Preview Not Found" };
   }
 
-  return {
-    title: `Careers at ${company.name}`,
-    description: company.tagline || `Join the team at ${company.name}`,
-  };
+  return { title: `Preview: Careers at ${company.name}` };
 }
 
-export default async function CareersPage({ params }: PageProps) {
+// Very lightweight token validation (scaffold). Token is base64 payload created by editor.
+const isValidToken = (token: string | undefined, companyId: string) => {
+  if (!token) return false;
+  try {
+    const decoded = Buffer.from(token, "base64").toString("utf-8");
+    const [cid, , ts] = decoded.split(":");
+    if (!cid || !ts) return false;
+    if (cid !== companyId) return false;
+    const created = Number(ts);
+    if (Number.isNaN(created)) return false;
+    // 15 minutes window
+    if (Date.now() - created > 1000 * 60 * 15) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export default async function PreviewPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const token = searchParams.token;
   const supabase = await createClient();
 
+  // Fetch company ignoring is_published but only if token is valid
   const { data: company } = await supabase
     .from("companies")
     .select("*")
-    .eq("slug", slug.trim())
-    .eq("is_published", true)
+    .eq("slug", slug)
     .maybeSingle();
 
-  if (!company) {
+  console.log("slug", slug);
+
+  if (!company) notFound();
+
+  if (!isValidToken(token, company.id)) {
     notFound();
   }
 
@@ -51,14 +71,12 @@ export default async function CareersPage({ params }: PageProps) {
     .from("content_sections")
     .select("*")
     .eq("company_id", company.id)
-    .eq("is_visible", true)
     .order("position");
 
   const { data: jobs } = await supabase
     .from("jobs")
     .select("*")
     .eq("company_id", company.id)
-    .eq("is_active", true)
     .order("created_at", { ascending: false });
 
   return (

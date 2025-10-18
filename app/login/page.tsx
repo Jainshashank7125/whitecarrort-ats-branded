@@ -1,21 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { Briefcase } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/toast/ToastProvider";
+import { Briefcase } from "lucide-react";
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
@@ -24,19 +25,41 @@ export default function LoginPage() {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
+        // show success toast
+        toast.show({
+          type: "success",
+          title: "Account created",
+          description: "Check your email for confirmation (if required).",
+        });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
         if (error) throw error;
+        toast.show({
+          type: "success",
+          title: "Signed in",
+          description: "Redirecting to editor...",
+        });
       }
 
-      router.push('/edit');
+      router.push("/edit");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const msg = err instanceof Error ? err.message : "An error occurred";
+      setError(msg);
+      toast.show({
+        type: "error",
+        title: "Authentication error",
+        description: msg,
+      });
     } finally {
       setLoading(false);
     }
   };
+
+  const toast = useToast();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
@@ -49,17 +72,20 @@ export default function LoginPage() {
           </div>
 
           <h1 className="text-3xl font-bold text-center text-slate-900 mb-2">
-            {isSignUp ? 'Create Account' : 'Welcome Back'}
+            {isSignUp ? "Create Account" : "Welcome Back"}
           </h1>
           <p className="text-center text-slate-600 mb-8">
             {isSignUp
-              ? 'Start building your careers page'
-              : 'Sign in to manage your careers page'}
+              ? "Start building your careers page"
+              : "Sign in to manage your careers page"}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-slate-700 mb-2"
+              >
                 Email Address
               </label>
               <input
@@ -74,7 +100,10 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-slate-700 mb-2"
+              >
                 Password
               </label>
               <input
@@ -100,7 +129,10 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
+              {(() => {
+                if (loading) return "Processing...";
+                return isSignUp ? "Create Account" : "Sign In";
+              })()}
             </button>
           </form>
 
@@ -110,7 +142,7 @@ export default function LoginPage() {
               className="text-blue-600 hover:text-blue-700 font-medium text-sm"
             >
               {isSignUp
-                ? 'Already have an account? Sign in'
+                ? "Already have an account? Sign in"
                 : "Don't have an account? Sign up"}
             </button>
           </div>

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import CSVUploader from "@/components/CSVUploader";
 import UploadSuccessAnimation from "@/components/UploadSuccessAnimation";
+import { useToast } from "@/components/toast/ToastProvider";
 
 export default function EditPage() {
   const router = useRouter();
@@ -37,6 +38,7 @@ export default function EditPage() {
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [uploadedJobCount, setUploadedJobCount] = useState(0);
   const supabase = createClient();
+  const toast = useToast();
 
   useEffect(() => {
     loadCompanyData();
@@ -137,8 +139,16 @@ export default function EditPage() {
         .eq("id", company.id);
 
       if (error) throw error;
+      toast.show({
+        type: "success",
+        title: "Saved",
+        description: "Company settings saved.",
+      });
     } catch (error) {
+      const msg =
+        error instanceof Error ? error.message : "Error saving company";
       console.error("Error saving company:", error);
+      toast.show({ type: "error", title: "Save failed", description: msg });
     } finally {
       setSaving(false);
     }
@@ -152,7 +162,24 @@ export default function EditPage() {
 
   const handlePreview = () => {
     if (company) {
-      window.open(`/${company.slug}/careers`, "_blank");
+      // Request a short-lived preview token from the server and open preview route
+      fetch("/api/preview-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId: company.id }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.token) {
+            const previewUrl = `/preview/${
+              company.slug
+            }?token=${encodeURIComponent(data.token)}`;
+            window.open(previewUrl, "_blank");
+          } else {
+            window.open(`/${company.slug}/careers`, "_blank");
+          }
+        })
+        .catch(() => window.open(`/${company.slug}/careers`, "_blank"));
     }
   };
 
@@ -301,7 +328,9 @@ export default function EditPage() {
         .select();
 
       if (error) {
+        const msg = error.message || "Error uploading jobs";
         console.error("Error uploading jobs:", error);
+        toast.show({ type: "error", title: "Upload failed", description: msg });
         return;
       }
 
@@ -311,9 +340,17 @@ export default function EditPage() {
         setUploadedJobCount(data.length);
         setShowCSVUploader(false);
         setShowSuccessAnimation(true);
+        toast.show({
+          type: "success",
+          title: "Jobs uploaded",
+          description: `${data.length} jobs added`,
+        });
       }
     } catch (error) {
+      const msg =
+        error instanceof Error ? error.message : "Error uploading CSV jobs";
       console.error("Error in CSV upload:", error);
+      toast.show({ type: "error", title: "Upload error", description: msg });
     } finally {
       setSaving(false);
     }
