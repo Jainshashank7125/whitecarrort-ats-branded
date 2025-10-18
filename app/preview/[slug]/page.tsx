@@ -3,15 +3,16 @@ import CareersPageClient from "@/app/[slug]/careers/CareersPageClient";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-interface PageProps {
-  params: Promise<{ slug: string }>;
-  searchParams: { token?: string };
-}
+type PageProps = {
+  params?: Promise<{ slug: string }>; // Next.js generated types expect a Promise here
+  searchParams?: Promise<{ token?: string | string[] }>;
+};
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const p = params ? await params : undefined;
+  const slug = p?.slug;
   const supabase = await createClient();
 
   const { data: company } = await supabase
@@ -48,8 +49,11 @@ const isValidToken = (token: string | undefined, companyId: string) => {
 };
 
 export default async function PreviewPage({ params, searchParams }: PageProps) {
-  const { slug } = await params;
-  const token = searchParams.token;
+  const p = params ? await params : undefined;
+  const slug = p?.slug ?? "";
+  const sp = searchParams ? await searchParams : undefined;
+  const tokenRaw = sp?.token;
+  const token = Array.isArray(tokenRaw) ? tokenRaw[0] : tokenRaw;
   const supabase = await createClient();
 
   // Fetch company ignoring is_published but only if token is valid
