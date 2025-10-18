@@ -6,6 +6,7 @@ import { Upload, FileText, X, Check, AlertCircle, Loader2 } from "lucide-react";
 import Papa from "papaparse";
 import { Job } from "@/lib/supabase/client";
 import CSVProcessingAnimation from "./CSVProcessingAnimation";
+import { useToast } from "@/components/toast/ToastProvider";
 
 interface CSVData {
   title: string;
@@ -31,6 +32,7 @@ export default function CSVUploader({
   onClose,
   companyId,
 }: CSVUploaderProps) {
+  const toast = useToast();
   const [isDragOver, setIsDragOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<
@@ -117,11 +119,15 @@ We welcome applications from qualified candidates who are passionate about makin
             setProcessingProgress(50);
 
             if (results.errors.length > 0) {
-              throw new Error(
-                `CSV parsing errors: ${results.errors
-                  .map((e) => e.message)
-                  .join(", ")}`
-              );
+              const msg = `CSV parsing errors: ${results.errors
+                .map((e) => e.message)
+                .join(", ")}`;
+              toast.show({
+                type: "error",
+                title: "CSV parse error",
+                description: msg,
+              });
+              throw new Error(msg);
             }
 
             const csvData = results.data as CSVData[];
@@ -135,17 +141,33 @@ We welcome applications from qualified candidates who are passionate about makin
             setProcessingProgress(70);
             await new Promise((resolve) => setTimeout(resolve, 800));
 
-            // Validate required fields
+            // Validate required fields across all rows
             const requiredFields = ["title", "location", "employment_type"];
-            const firstRow = csvData[0];
-            const missingFields = requiredFields.filter(
-              (field) => !firstRow[field as keyof CSVData]
-            );
+            const rowErrors: string[] = [];
 
-            if (missingFields.length > 0) {
-              throw new Error(
-                `Missing required fields: ${missingFields.join(", ")}`
+            for (let idx = 0; idx < csvData.length; idx++) {
+              const row = csvData[idx];
+              const missing = requiredFields.filter(
+                (field) =>
+                  !row[field as keyof CSVData] ||
+                  String(row[field as keyof CSVData]).trim() === ""
               );
+              if (missing.length > 0) {
+                rowErrors.push(`Row ${idx + 1}: missing ${missing.join(", ")}`);
+              }
+            }
+
+            if (rowErrors.length > 0) {
+              // Provide up to first 10 errors to user
+              const msg = `CSV validation failed:\n${rowErrors
+                .slice(0, 10)
+                .join("; ")}`;
+              toast.show({
+                type: "error",
+                title: "CSV validation failed",
+                description: rowErrors.slice(0, 3).join("; "),
+              });
+              throw new Error(msg);
             }
 
             // Stage 4: Processing data
@@ -163,12 +185,18 @@ We welcome applications from qualified candidates who are passionate about makin
             setShowPreview(true);
             setShowProcessingAnimation(false);
             setUploadStatus("success");
+            toast.show({
+              type: "success",
+              title: "CSV parsed",
+              description: `Found ${jobs.length} jobs`,
+            });
           } catch (error) {
             setShowProcessingAnimation(false);
-            setErrorMessage(
-              error instanceof Error ? error.message : "Unknown error occurred"
-            );
+            const msg =
+              error instanceof Error ? error.message : "Unknown error occurred";
+            setErrorMessage(msg);
             setUploadStatus("error");
+            toast.show({ type: "error", title: "CSV error", description: msg });
           } finally {
             setIsProcessing(false);
           }
@@ -220,8 +248,42 @@ We welcome applications from qualified candidates who are passionate about makin
   };
 
   const confirmUpload = () => {
-    onJobsUploaded(previewData);
-    onClose();
+    // Send previewData to server for server-side validation & insert
+    fetch("/api/csv-import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ companyId, jobs: previewData }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.accepted >= previewData.length) {
+          // Success: let parent update local state via callback
+          onJobsUploaded(previewData);
+          onClose();
+          toast.show({
+            type: "success",
+            title: "Import complete",
+            description: `${previewData.length} jobs imported`,
+          });
+        } else {
+          const msg = `Server accepted ${data?.accepted ?? 0} of ${
+            previewData.length
+          } rows`;
+          setErrorMessage(msg);
+          setUploadStatus("error");
+          toast.show({
+            type: "error",
+            title: "Import partial",
+            description: msg,
+          });
+        }
+      })
+      .catch((err) => {
+        const msg = err?.message || "Failed to import jobs on server";
+        setErrorMessage(msg);
+        setUploadStatus("error");
+        toast.show({ type: "error", title: "Import failed", description: msg });
+      });
   };
 
   return (

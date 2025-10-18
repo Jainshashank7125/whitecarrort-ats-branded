@@ -105,7 +105,7 @@ export default function UploadSuccessAnimation({
           </h2>
           <p className="text-slate-600 mb-6">
             {jobCount} job{jobCount !== 1 ? "s" : ""} have been imported and are
-            now live on your careers page.
+            now ready to go live on your careers page.
           </p>
         </motion.div>
 
