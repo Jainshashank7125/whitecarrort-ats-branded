@@ -23,7 +23,20 @@ export default function LoginPage() {
       const supabase = createClient();
 
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        // Prefer providing a redirect URL so the confirmation email points to production.
+        // Fallback to the current origin if NEXT_PUBLIC_APP_URL is not set.
+        const base =
+          (process.env.NEXT_PUBLIC_APP_URL as string) ||
+          (typeof globalThis !== "undefined" && globalThis.location
+            ? globalThis.location.origin
+            : "");
+        const redirectTo = `${base}/login`;
+
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: redirectTo },
+        });
         if (error) throw error;
         // show success toast
         toast.show({
